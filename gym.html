@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Gimnasio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #252525;
+    --border: #2e2e2e; --accent: #c8f03d; --accent2: #ff6b35;
+    --text: #f0f0f0; --muted: #666; --danger: #ff4444; --good: #44ff88;
+    --blue: #4a9eff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding-bottom: 80px; }
+
+  header { padding: 18px 16px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 19px; font-weight: 800; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .routine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+  .routine-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 14px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden; }
+  .routine-card:active { transform: scale(0.97); }
+  .routine-card .emoji { font-size: 28px; margin-bottom: 10px; display: block; }
+  .routine-card .name { font-size: 15px; font-weight: 800; }
+  .routine-card .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .routine-card .accent-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+  .routine-card:nth-child(1) .accent-bar { background: #ff6b35; }
+  .routine-card:nth-child(2) .accent-bar { background: #4a9eff; }
+  .routine-card:nth-child(3) .accent-bar { background: #c8f03d; }
+  .routine-card:nth-child(4) .accent-bar { background: #ff4444; }
+  .routine-card:nth-child(5) .accent-bar { background: #b44aff; }
+  .last-trained { font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+  .workout-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .back-btn { background: var(--surface2); border: none; color: var(--text); font-size: 18px; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+  .workout-title { font-size: 17px; font-weight: 800; flex: 1; }
+  .exercise-list { padding: 12px 16px; }
+
+  .exercise-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .exercise-header { padding: 14px 14px 10px; display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
+  .exercise-name { font-size: 14px; font-weight: 700; }
+  .exercise-muscle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .exercise-body { padding: 0 14px 14px; }
+
+  .last-session { background: var(--surface2); border-radius: 8px; padding: 9px 12px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .how-to { background: #0f1e2e; border: 1px solid #1a3a5a; border-radius: 8px; padding: 9px 12px; margin-bottom: 10px; font-size: 12px; color: #aaccee; line-height: 1.5; display: none; }
+  .how-to.open { display: block; }
+  .how-to-btn { background: none; border: none; color: var(--blue); font-size: 11px; font-family: 'Syne', sans-serif; font-weight: 700; cursor: pointer; padding: 0 0 8px; text-decoration: underline; }
+
+  .suggestion-box { background: #1a2a10; border: 1px solid #3a5a1a; border-radius: 8px; padding: 9px 12px; margin-bottom: 10px; font-size: 12px; }
+  .suggestion-box .title { color: var(--accent); font-weight: 700; margin-bottom: 3px; }
+  .suggestion-box .value { color: var(--text); font-family: 'DM Mono', monospace; margin-bottom: 2px; }
+  .suggestion-box .hint { color: #aaa; }
+
+  .swap-panel { background: var(--surface2); border-top: 1px solid var(--border); padding: 12px 14px; display: none; }
+  .swap-panel.open { display: block; }
+  .swap-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .swap-option { display: flex; justify-content: space-between; align-items: center; padding: 9px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .swap-option .swap-sub { font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 1px; }
+
+  .sets-header { display: grid; grid-template-columns: 32px 1fr 1fr 40px; gap: 6px; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; padding: 0 2px; }
+  .set-row { display: grid; grid-template-columns: 32px 1fr 1fr 40px; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .set-num { font-size: 12px; color: var(--muted); font-weight: 700; text-align: center; }
+  .set-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; padding: 8px 10px; text-align: center; outline: none; width: 100%; }
+  .set-input:focus { border-color: var(--accent); }
+  .set-done { width: 32px; height: 32px; border-radius: 8px; border: 2px solid var(--border); background: none; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .set-done.checked { background: var(--accent); border-color: var(--accent); color: #0f0f0f; }
+  .add-set-btn { background: none; border: 1px dashed var(--border); border-radius: 7px; color: var(--muted); font-size: 12px; font-family: 'Syne', sans-serif; font-weight: 600; width: 100%; padding: 7px; cursor: pointer; margin-top: 4px; }
+
+  .action-row { display: flex; gap: 6px; margin-top: 10px; }
+  .action-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
+  .action-btn.swap { color: var(--blue); border-color: #1a3a5a; background: #0f1e2e; }
+  .action-btn.remove { color: var(--danger); border-color: #3d1a1a; background: #1e0f0f; }
+
+  .rest-timer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 100; transform: translateY(100%); transition: transform 0.3s; }
+  .rest-timer.visible { transform: translateY(0); }
+  .timer-label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+  .timer-count { font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; color: var(--accent); }
+  .timer-skip { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+  .finish-wrap { padding: 16px; }
+  .finish-btn { display: block; width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: #0f0f0f; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; cursor: pointer; }
+
+  .add-exercise-wrap { padding: 0 16px 16px; }
+  .section-mini { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; padding-top: 4px; }
+  label { display: block; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  input, select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; padding: 10px 12px; outline: none; margin-bottom: 10px; }
+  input:focus, select:focus { border-color: var(--accent); }
+  .add-btn { display: block; width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 6px; }
+
+  /* LIBRARY SCREEN */
+  .lib-search { padding: 12px 16px; display: flex; gap: 8px; }
+  .lib-search input { margin-bottom: 0; flex: 1; }
+  .lib-filter { display: flex; gap: 6px; padding: 0 16px 12px; overflow-x: auto; }
+  .lib-filter::-webkit-scrollbar { display: none; }
+  .filter-chip { padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .filter-chip.active { background: var(--accent); color: #0f0f0f; border-color: var(--accent); }
+  .lib-list { padding: 0 16px 16px; }
+  .lib-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+  .lib-item-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .lib-item-name { font-size: 13px; font-weight: 700; }
+  .lib-item-muscle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .lib-item-desc { font-size: 12px; color: #aaa; margin-top: 8px; line-height: 1.5; display: none; }
+  .lib-item-desc.open { display: block; }
+  .lib-item-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .add-to-workout-btn { padding: 6px 12px; border-radius: 7px; border: none; background: var(--accent); color: #0f0f0f; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .add-to-workout-btn:disabled { background: var(--border); color: var(--muted); cursor: default; }
+  .see-how-btn { background: none; border: none; color: var(--blue); font-size: 11px; font-family: 'Syne', sans-serif; font-weight: 700; cursor: pointer; }
+
+  .history-list { padding: 16px; }
+  .history-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .history-date { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .history-routine { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .history-ex { font-size: 12px; color: var(--muted); line-height: 1.8; }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--accent); color: #0f0f0f; padding: 10px 20px; border-radius: 99px; font-size: 13px; font-weight: 700; transition: transform 0.3s; z-index: 200; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 50; }
+  .nav-item { flex: 1; padding: 10px 4px; text-align: center; cursor: pointer; font-size: 10px; font-weight: 700; color: var(--muted); }
+  .nav-item .nav-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+  .nav-item.active { color: var(--accent); }
+  .section-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin: 16px 16px 8px; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <header>
+    <h1>💪 Mi Gimnasio</h1>
+    <span id="home-date" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace"></span>
+  </header>
+  <div class="section-label">Elegí tu rutina de hoy</div>
+  <div class="routine-grid" id="routine-grid"></div>
+</div>
+
+<!-- WORKOUT -->
+<div id="screen-workout" class="screen">
+  <div class="workout-header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="workout-title" id="workout-title">Rutina</div>
+    <div id="workout-timer-mini" style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)"></div>
+  </div>
+  <div class="exercise-list" id="exercise-list"></div>
+  <div class="add-exercise-wrap">
+    <div class="section-mini">+ Agregar ejercicio manual</div>
+    <label>Nombre</label>
+    <input id="new-ex-name" placeholder="Ej: Press inclinado con mancuerna">
+    <label>Músculo</label>
+    <input id="new-ex-muscle" placeholder="Ej: Pectoral">
+    <label>Peso inicial (kg)</label>
+    <input id="new-ex-weight" type="number" placeholder="20">
+    <button class="add-btn" onclick="addExercise()">+ Agregar</button>
+    <button class="add-btn" onclick="showScreen('library')" style="color:var(--blue);border-color:#1a3a5a;background:#0f1e2e">📚 Elegir de la biblioteca</button>
+  </div>
+  <div class="finish-wrap">
+    <button class="finish-btn" onclick="finishWorkout()">✓ Terminar entrenamiento</button>
+  </div>
+</div>
+
+<!-- LIBRARY -->
+<div id="screen-library" class="screen">
+  <header>
+    <h1>📚 Biblioteca</h1>
+    <button onclick="showScreen('workout')" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer" id="lib-back-btn">← Volver</button>
+  </header>
+  <div class="lib-search">
+    <input id="lib-search" placeholder="Buscar ejercicio..." oninput="renderLibrary()">
+  </div>
+  <div class="lib-filter" id="lib-filter"></div>
+  <div class="lib-list" id="lib-list"></div>
+</div>
+
+<!-- HISTORY -->
+<div id="screen-history" class="screen">
+  <header><h1>📊 Historial</h1></header>
+  <div class="history-list" id="history-list"></div>
+</div>
+
+<!-- REST TIMER -->
+<div class="rest-timer" id="rest-timer">
+  <div>
+    <div class="timer-label">Descanso</div>
+    <div class="timer-count" id="timer-count">1:30</div>
+  </div>
+  <button class="timer-skip" onclick="skipTimer()">Saltar ▶</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottom-nav">
+  <div class="nav-item active" onclick="showScreen('home')"><span class="nav-icon">🏠</span>Inicio</div>
+  <div class="nav-item" onclick="showScreen('library')"><span class="nav-icon">📚</span>Biblioteca</div>
+  <div class="nav-item" onclick="showScreen('history')"><span class="nav-icon">📊</span>Historial</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== EXERCISE LIBRARY =====
+const LIBRARY = {
+  pec: [
+    { id:'pec1', name:'Press de banca', muscle:'Pectoral', defaultWeight:45, defaultReps:10, similar:['pec2','pec3','pec6','pec7'],
+      desc:'Acostado en el banco, agarrá la barra con manos separadas al ancho de hombros. Bajá al pecho controlado y empujá hasta arriba.' },
+    { id:'pec2', name:'Press de banca inclinado', muscle:'Pectoral', defaultWeight:40, defaultReps:10, similar:['pec1','pec3','pec7'],
+      desc:'Igual que el press de banca pero con el banco inclinado a 30-45°. Trabaja más la parte alta del pecho.' },
+    { id:'pec3', name:'Press con mancuernas', muscle:'Pectoral', defaultWeight:20, defaultReps:10, similar:['pec1','pec2','pec6'],
+      desc:'Acostado en el banco, una mancuerna en cada mano a la altura del pecho. Empujá hacia arriba hasta juntar las manos y bajá lento.' },
+    { id:'pec4', name:'Apertura en máquina', muscle:'Pectoral', defaultWeight:35, defaultReps:10, similar:['pec5','pec8','pec10'],
+      desc:'Sentado en la máquina, agarrá los apoyos con los codos doblados. Cerrá los brazos hacia el centro y volvé lento.' },
+    { id:'pec5', name:'Apertura con mancuernas', muscle:'Pectoral', defaultWeight:10, defaultReps:12, similar:['pec4','pec8','pec9'],
+      desc:'Acostado en el banco, brazos extendidos con mancuernas. Abrí los brazos hacia los lados como un arco y volvé arriba.' },
+    { id:'pec6', name:'Press en máquina de pecho', muscle:'Pectoral', defaultWeight:25, defaultReps:10, similar:['pec1','pec2','pec3'],
+      desc:'Sentado en la máquina, agarrá las manijas y empujá hacia adelante hasta extender los brazos. Volvé lento.' },
+    { id:'pec7', name:'Press inclinado con mancuerna', muscle:'Pectoral', defaultWeight:12, defaultReps:10, similar:['pec2','pec3'],
+      desc:'Banco inclinado, una mancuerna en cada mano a la altura del pecho. Empujá hacia arriba y bajá controlado.' },
+    { id:'pec8', name:'Cruce en polea', muscle:'Pectoral', defaultWeight:10, defaultReps:12, similar:['pec4','pec5'],
+      desc:'De pie entre las dos poleas altas, agarrá las manijas. Con brazos levemente doblados, traé las manos al frente como si abrazaras algo.' },
+    { id:'pec9', name:'Apertura inclinada con mancuerna', muscle:'Pectoral', defaultWeight:8, defaultReps:12, similar:['pec5','pec8'],
+      desc:'Banco inclinado. Mancuernas arriba con palmas enfrentadas. Abrí los brazos hacia los lados y volvé.' },
+    { id:'pec10', name:'Apertura en polea baja', muscle:'Pectoral', defaultWeight:5, defaultReps:12, similar:['pec8','pec4'],
+      desc:'Poleas en la posición baja. Agarrá las manijas y levantá los brazos hacia arriba y al centro, como si juntaras las manos arriba.' },
+  ],
+  shoulder: [
+    { id:'sh1', name:'Press de hombro (Smith)', muscle:'Hombro', defaultWeight:12, defaultReps:12, similar:['sh2','sh3'],
+      desc:'Sentado debajo de la barra Smith, agarrala a la altura de los hombros. Empujá hacia arriba hasta extender los brazos y bajá lento.' },
+    { id:'sh2', name:'Press de hombro con mancuernas', muscle:'Hombro', defaultWeight:10, defaultReps:12, similar:['sh1','sh3'],
+      desc:'Sentado, una mancuerna en cada mano a la altura de los hombros con codos doblados. Empujá hacia arriba y bajá controlado.' },
+    { id:'sh3', name:'Press militar con barra', muscle:'Hombro', defaultWeight:20, defaultReps:10, similar:['sh1','sh2'],
+      desc:'De pie o sentado, barra a la altura del pecho con agarre ancho. Empujá hacia arriba hasta extender los brazos.' },
+    { id:'sh4', name:'Vuelo lateral con mancuerna', muscle:'Hombro lateral', defaultWeight:8, defaultReps:12, similar:['sh5'],
+      desc:'De pie, una mancuerna en cada mano a los lados. Levantá los brazos hacia los costados hasta la altura de los hombros y bajá lento.' },
+    { id:'sh5', name:'Vuelo lateral en polea', muscle:'Hombro lateral', defaultWeight:5, defaultReps:12, similar:['sh4'],
+      desc:'De pie al lado de la polea baja, agarrá la manija con la mano opuesta. Levantá el brazo hacia el costado hasta la altura del hombro.' },
+    { id:'sh6', name:'Vuelo posterior en máquina', muscle:'Hombro posterior', defaultWeight:22, defaultReps:10, similar:['sh7','sh8'],
+      desc:'Sentado de frente a la máquina pec-deck al revés. Agarrá los apoyos y abrí los brazos hacia atrás. Trabajás la parte trasera del hombro.' },
+    { id:'sh7', name:'Vuelo posterior con mancuernas', muscle:'Hombro posterior', defaultWeight:8, defaultReps:12, similar:['sh6','sh8'],
+      desc:'Inclinado hacia adelante, mancuernas colgando. Levantá los brazos hacia los costados y atrás hasta la altura del hombro.' },
+    { id:'sh8', name:'Face pull en polea', muscle:'Hombro posterior', defaultWeight:12, defaultReps:12, similar:['sh6','sh7'],
+      desc:'Polea alta, agarrá la cuerda con ambas manos. Jalá hacia tu cara separando las manos. Los codos quedan altos a los lados.' },
+  ],
+  triceps: [
+    { id:'tri1', name:'Skull crusher con mancuerna', muscle:'Tríceps', defaultWeight:7.5, defaultReps:10, similar:['tri2','tri3'],
+      desc:'Acostado en el banco, mancuernas arriba con brazos extendidos. Doblá los codos bajando las mancuernas hacia tu frente y extendé.' },
+    { id:'tri2', name:'Extensión tríceps en polea', muscle:'Tríceps', defaultWeight:5, defaultReps:10, similar:['tri1','tri3','tri4'],
+      desc:'De pie frente a la polea alta, agarrá la barra o cuerda. Con los codos pegados al cuerpo, empujá hacia abajo hasta extender los brazos.' },
+    { id:'tri3', name:'Press francés con barra Z', muscle:'Tríceps', defaultWeight:15, defaultReps:10, similar:['tri1','tri2'],
+      desc:'Acostado, barra Z arriba con brazos extendidos. Doblá los codos bajando la barra hacia la frente y volvé a extender.' },
+    { id:'tri4', name:'Extensión tríceps sobre cabeza en polea', muscle:'Tríceps', defaultWeight:5, defaultReps:12, similar:['tri2','tri5'],
+      desc:'De espaldas a la polea alta, agarrá la cuerda sobre tu cabeza. Extendé los brazos hacia adelante y abajo manteniendo los codos quietos.' },
+    { id:'tri5', name:'Fondos en paralelas', muscle:'Tríceps', defaultWeight:0, defaultReps:10, similar:['tri4','tri2'],
+      desc:'Agarrá las paralelas con los brazos extendidos. Doblá los codos bajando el cuerpo y empujá hacia arriba. Cuerpo recto o levemente inclinado.' },
+    { id:'tri6', name:'Patada de tríceps con mancuerna', muscle:'Tríceps', defaultWeight:5, defaultReps:12, similar:['tri2','tri4'],
+      desc:'Inclinado hacia adelante apoyado en el banco, codo pegado al cuerpo a 90°. Extendé el brazo hacia atrás y volvé lento.' },
+  ],
+  back: [
+    { id:'bk1', name:'Jalón al pecho', muscle:'Espalda', defaultWeight:25, defaultReps:10, similar:['bk2','bk3','bk4'],
+      desc:'Sentado en la máquina, agarrá la barra ancha. Jalá hacia el pecho sacando pecho, con los codos apuntando al suelo. Volvé lento.' },
+    { id:'bk2', name:'Jalón al pecho agarre neutro', muscle:'Espalda', defaultWeight:25, defaultReps:10, similar:['bk1','bk3'],
+      desc:'Igual que el jalón pero con agarre neutro (palmas enfrentadas). Jalá hacia el pecho controlando la bajada.' },
+    { id:'bk3', name:'Jalón tras nuca', muscle:'Espalda', defaultWeight:20, defaultReps:10, similar:['bk1','bk2'],
+      desc:'Sentado, jalá la barra detrás de la cabeza hasta la nuca. Cuidado con no bajar demasiado. Solo si no tenés molestias en el cuello.' },
+    { id:'bk4', name:'Dominadas', muscle:'Espalda', defaultWeight:0, defaultReps:8, similar:['bk1','bk5'],
+      desc:'Colgado de la barra con agarre prono. Jalá tu cuerpo hacia arriba hasta que el mentón supere la barra. Bajá lento.' },
+    { id:'bk5', name:'Remo con barra', muscle:'Espalda', defaultWeight:30, defaultReps:10, similar:['bk6','bk7'],
+      desc:'Inclinado hacia adelante, agarrá la barra. Jalá hacia el abdomen doblando los codos y apretando la espalda. Bajá controlado.' },
+    { id:'bk6', name:'Remo con mancuerna', muscle:'Espalda', defaultWeight:15, defaultReps:10, similar:['bk5','bk7'],
+      desc:'Apoyá una rodilla y mano en el banco. Con la otra mano jalá la mancuerna hacia la cadera apretando la espalda.' },
+    { id:'bk7', name:'Remo en máquina', muscle:'Espalda', defaultWeight:25, defaultReps:10, similar:['bk5','bk6'],
+      desc:'Sentado en la máquina de remo, agarrá las manijas. Jalá hacia el abdomen juntando los omóplatos y volvé lento.' },
+    { id:'bk8', name:'Pullover con mancuerna', muscle:'Espalda', defaultWeight:12, defaultReps:12, similar:['bk1','bk5'],
+      desc:'Acostado en el banco, mancuerna con ambas manos arriba. Bajá los brazos hacia atrás por encima de la cabeza y volvé.' },
+  ],
+  biceps: [
+    { id:'bi1', name:'Curl con barra Z', muscle:'Bíceps', defaultWeight:20, defaultReps:10, similar:['bi2','bi3'],
+      desc:'De pie, agarrá la barra Z con agarre supino. Con codos pegados al cuerpo, subí la barra doblando los codos y bajá lento.' },
+    { id:'bi2', name:'Curl con mancuernas', muscle:'Bíceps', defaultWeight:10, defaultReps:10, similar:['bi1','bi3'],
+      desc:'De pie, una mancuerna en cada mano. Subí alternando o juntos doblando el codo, con la palma mirando hacia arriba al subir.' },
+    { id:'bi3', name:'Curl martillo en polea baja', muscle:'Bíceps', defaultWeight:15, defaultReps:12, similar:['bi1','bi4'],
+      desc:'De pie frente a la polea baja, agarrá la cuerda con agarre neutro (pulgares arriba). Subí doblando los codos.' },
+    { id:'bi4', name:'Curl martillo con mancuerna', muscle:'Bíceps', defaultWeight:10, defaultReps:12, similar:['bi3','bi2'],
+      desc:'De pie, mancuernas con agarre neutro (pulgares arriba). Subí sin girar la muñeca, como un martillo. Codos pegados al cuerpo.' },
+    { id:'bi5', name:'Curl concentrado', muscle:'Bíceps', defaultWeight:8, defaultReps:12, similar:['bi2','bi4'],
+      desc:'Sentado, codo apoyado en el muslo. Subí la mancuerna doblando el codo completamente y bajá controlado. Un brazo a la vez.' },
+    { id:'bi6', name:'Curl en polea alta', muscle:'Bíceps', defaultWeight:8, defaultReps:12, similar:['bi1','bi2'],
+      desc:'De frente a la polea alta, agarrá la barra. Con los codos quietos y elevados, doblá los brazos jalando hacia la frente.' },
+  ],
+  trap: [
+    { id:'tr1', name:'Encogimiento de hombros con barra', muscle:'Trapecio', defaultWeight:40, defaultReps:12, similar:['tr2','tr3'],
+      desc:'De pie, barra colgando frente a vos. Subí los hombros hacia las orejas lo más que puedas y bajá lento. Sin doblar los codos.' },
+    { id:'tr2', name:'Encogimiento con mancuernas', muscle:'Trapecio', defaultWeight:15, defaultReps:12, similar:['tr1','tr3'],
+      desc:'De pie, una mancuerna en cada mano. Subí los hombros hacia las orejas y bajá controlado.' },
+    { id:'tr3', name:'Encogimiento en máquina Smith', muscle:'Trapecio', defaultWeight:35, defaultReps:12, similar:['tr1','tr2'],
+      desc:'De pie debajo de la barra Smith a la altura de las caderas. Agarrá la barra y subí los hombros hacia las orejas.' },
+  ],
+  quad: [
+    { id:'qu1', name:'Sentadilla con barra', muscle:'Cuádriceps', defaultWeight:50, defaultReps:10, similar:['qu2','qu3','qu5'],
+      desc:'Barra en los trapecios, pies al ancho de hombros. Doblá las rodillas bajando como si te sentaras, hasta los 90° o más. Empujá hacia arriba.' },
+    { id:'qu2', name:'Sentadilla en máquina Smith', muscle:'Cuádriceps', defaultWeight:45, defaultReps:10, similar:['qu1','qu3'],
+      desc:'Igual que sentadilla pero con la barra guiada. Pies levemente adelantados. Bajá controlado y empujá.' },
+    { id:'qu3', name:'Prensa de piernas', muscle:'Cuádriceps', defaultWeight:80, defaultReps:12, similar:['qu1','qu2'],
+      desc:'Sentado en la prensa, pies en la plataforma al ancho de hombros. Doblá las rodillas hacia el pecho y empujá hasta casi extender (no bloquees).' },
+    { id:'qu4', name:'Extensión de cuádriceps en máquina', muscle:'Cuádriceps', defaultWeight:30, defaultReps:12, similar:['qu5'],
+      desc:'Sentado en la máquina, pies bajo el apoyapies. Extendé las piernas hacia arriba hasta casi bloquear las rodillas y bajá lento.' },
+    { id:'qu5', name:'Estocada con barra', muscle:'Cuádriceps', defaultWeight:30, defaultReps:10, similar:['qu1','qu6'],
+      desc:'Barra en los trapecios, dá un paso largo hacia adelante. Bajá la rodilla trasera casi al suelo y empujá para volver. Alternás piernas.' },
+    { id:'qu6', name:'Estocada con mancuernas', muscle:'Cuádriceps', defaultWeight:12, defaultReps:10, similar:['qu5','qu1'],
+      desc:'Una mancuerna en cada mano colgando. Dá un paso largo, bajá la rodilla trasera al suelo y volvé. Alternás piernas.' },
+    { id:'qu7', name:'Sentadilla búlgara', muscle:'Cuádriceps', defaultWeight:15, defaultReps:10, similar:['qu5','qu6'],
+      desc:'Pie trasero apoyado en un banco, pie delantero adelantado. Bajá la rodilla trasera al suelo y empujá con la pierna delantera.' },
+  ],
+  hamstring: [
+    { id:'ha1', name:'Curl isquiotibial acostado', muscle:'Isquiotibiales', defaultWeight:27, defaultReps:10, similar:['ha2','ha3'],
+      desc:'Acostado boca abajo en la máquina, tobillos bajo el apoyapies. Doblá las rodillas subiendo el peso y bajá lento.' },
+    { id:'ha2', name:'Curl isquiotibial sentado', muscle:'Isquiotibiales', defaultWeight:25, defaultReps:10, similar:['ha1','ha3'],
+      desc:'Sentado en la máquina, tobillos sobre el apoyapies. Jalá hacia abajo doblando las rodillas y volvé lento.' },
+    { id:'ha3', name:'Peso muerto rumano', muscle:'Isquiotibiales', defaultWeight:40, defaultReps:10, similar:['ha1','ha2'],
+      desc:'De pie con barra o mancuernas. Con rodillas levemente dobladas, incliná el torso hacia adelante bajando el peso por las piernas hasta sentir el estiramiento.' },
+    { id:'ha4', name:'Peso muerto con mancuernas', muscle:'Isquiotibiales', defaultWeight:20, defaultReps:10, similar:['ha3','ha1'],
+      desc:'Igual que el peso muerto rumano pero con mancuernas, que te permite más rango de movimiento.' },
+  ],
+  calves: [
+    { id:'ca1', name:'Gemelos en prensa', muscle:'Gemelos', defaultWeight:100, defaultReps:15, similar:['ca2','ca3'],
+      desc:'En la prensa de piernas, apoyá solo la parte delantera del pie. Empujá la plataforma extendiendo el tobillo y bajá lento.' },
+    { id:'ca2', name:'Gemelos con barra', muscle:'Gemelos', defaultWeight:70, defaultReps:15, similar:['ca1','ca3'],
+      desc:'Barra en los trapecios, punta de los pies en un escalón. Subí en puntas de pie lo más alto que puedas y bajá por debajo del nivel del escalón.' },
+    { id:'ca3', name:'Gemelos en máquina', muscle:'Gemelos', defaultWeight:60, defaultReps:15, similar:['ca1','ca2'],
+      desc:'Sentado en la máquina de gemelos, apoyos sobre los muslos. Empujá con las puntas de pie hacia abajo y volvé.' },
+    { id:'ca4', name:'Gemelos de pie con mancuerna', muscle:'Gemelos', defaultWeight:15, defaultReps:15, similar:['ca2','ca3'],
+      desc:'De pie sobre un escalón con una mancuerna. Subí en puntas de pie y bajá por debajo del escalón para estirar el gemelo.' },
+  ],
+  adductor: [
+    { id:'ad1', name:'Aducción de cadera en máquina', muscle:'Aductores', defaultWeight:45, defaultReps:12, similar:['ad2'],
+      desc:'Sentado en la máquina de aducción, piernas separadas contra los apoyos. Cerrá las piernas hacia el centro y volvé lento.' },
+    { id:'ad2', name:'Aducción en polea baja', muscle:'Aductores', defaultWeight:10, defaultReps:12, similar:['ad1'],
+      desc:'De pie al lado de la polea baja, tobillo enganchado. Pasá la pierna hacia el otro lado cruzando y volvé controlado.' },
+  ],
+};
+
+const ROUTINE_TEMPLATES = {
+  push: [
+    { groups: ['pec'], pick: 2 },
+    { groups: ['shoulder'], pick: 2 },
+    { groups: ['triceps'], pick: 1 },
+  ],
+  pull: [
+    { groups: ['back'], pick: 2 },
+    { groups: ['biceps'], pick: 2 },
+    { groups: ['trap'], pick: 1 },
+    { groups: ['shoulder'], filter: ['sh6','sh7','sh8'], pick: 1 },
+  ],
+  legs: [
+    { groups: ['quad'], pick: 2 },
+    { groups: ['hamstring'], pick: 1 },
+    { groups: ['calves'], pick: 1 },
+    { groups: ['adductor'], pick: 1 },
+  ],
+  upper: [
+    { groups: ['pec'], pick: 1 },
+    { groups: ['back'], pick: 1 },
+    { groups: ['shoulder'], pick: 1 },
+    { groups: ['biceps'], pick: 1 },
+    { groups: ['triceps'], pick: 1 },
+  ],
+  lower: [
+    { groups: ['quad'], pick: 2 },
+    { groups: ['hamstring'], pick: 1 },
+    { groups: ['calves'], pick: 1 },
+    { groups: ['adductor'], pick: 1 },
+  ],
+};
+
+const ROUTINES_META = [
+  { id:'push',  name:'Push',  emoji:'🔴', desc:'Pecho · Hombro · Tríceps' },
+  { id:'pull',  name:'Pull',  emoji:'🔵', desc:'Espalda · Trapecio · Bíceps' },
+  { id:'legs',  name:'Legs',  emoji:'🟢', desc:'Cuádriceps · Isquios · Gemelos' },
+  { id:'upper', name:'Upper', emoji:'🟠', desc:'Cuerpo superior completo' },
+  { id:'lower', name:'Lower', emoji:'🟣', desc:'Cuerpo inferior completo' },
+];
+
+const MUSCLE_FILTERS = ['Todos','Pectoral','Hombro','Tríceps','Espalda','Bíceps','Trapecio','Cuádriceps','Isquiotibiales','Gemelos','Aductores'];
+
+// ===== STATE =====
+function loadState() {
+  try { const s = localStorage.getItem('gym_v3'); if (s) return JSON.parse(s); } catch(e) {}
+  return { history: [] };
+}
+let S = loadState();
+function save() { localStorage.setItem('gym_v3', JSON.stringify(S)); }
+
+let currentRoutine = null;
+let currentExercises = [];
+let workoutStart = null;
+let restInterval = null;
+let workoutTimerInterval = null;
+let libFilter = 'Todos';
+let fromWorkout = false;
+
+// ===== UTILS =====
+function hoy() { return new Date().toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'}); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function getAllEx() { return Object.values(LIBRARY).flat(); }
+function getById(id) { return getAllEx().find(e => e.id === id); }
+function getLastSession(routineId) {
+  const s = S.history.filter(h => h.routineId === routineId);
+  return s.length ? s[s.length - 1] : null;
+}
+
+// ===== ROTATION =====
+function pickExercises(routineId) {
+  const template = ROUTINE_TEMPLATES[routineId];
+  const picked = [];
+  const usedIds = new Set();
+  const lastSession = getLastSession(routineId);
+  const lastIds = new Set(lastSession ? lastSession.exercises.map(e => e.id) : []);
+
+  template.forEach(slot => {
+    let pool = [];
+    slot.groups.forEach(g => {
+      let group = LIBRARY[g] || [];
+      if (slot.filter) group = group.filter(e => slot.filter.includes(e.id));
+      pool = pool.concat(group);
+    });
+    pool = pool.filter(e => !usedIds.has(e.id));
+    const fresh = pool.filter(e => !lastIds.has(e.id));
+    const source = fresh.length >= slot.pick ? fresh : pool;
+    source.sort(() => Math.random() - 0.5).slice(0, slot.pick).forEach(e => {
+      usedIds.add(e.id); picked.push(e);
+    });
+  });
+  return picked;
+}
+
+function initSets(ex) {
+  const last = getLastSession(currentRoutine ? currentRoutine.id : '');
+  const lastEx = last ? last.exercises.find(e => e.id === ex.id) : null;
+  const lastSet = lastEx && lastEx.sets.length ? lastEx.sets[0] : null;
+  const n = lastEx ? Math.max(lastEx.sets.length, 3) : 3;
+  return Array(n).fill(null).map(() => ({
+    weight: lastSet ? lastSet.weight : ex.defaultWeight,
+    reps: lastSet ? lastSet.reps : ex.defaultReps,
+    done: false
+  }));
+}
+
+function getSuggestion(ex) {
+  const last = getLastSession(currentRoutine.id);
+  if (!last) return null;
+  const lastEx = last.exercises.find(e => e.id === ex.id);
+  if (!lastEx || !lastEx.sets.length) return null;
+  const lsets = lastEx.sets;
+  const allDone = lastEx.allDone !== false;
+  const avgW = lsets.reduce((s,st) => s + (st.weight||0), 0) / lsets.length;
+  const avgR = lsets.reduce((s,st) => s + st.reps, 0) / lsets.length;
+  let sugW = avgW, sugR = Math.round(avgR), msg = '';
+  if (allDone) {
+    if (avgR >= 12) {
+      const inc = avgW <= 10 ? 1 : avgW <= 30 ? 2.5 : 5;
+      sugW = ex.defaultWeight === 0 ? 0 : Math.round((avgW + inc) * 2) / 2;
+      sugR = 8; msg = '↑ Subí el peso, empezá con 8 reps';
+    } else { sugR = Math.min(12, Math.round(avgR) + 1); msg = '↑ Sumá una rep por serie'; }
+  } else { msg = '→ Mantené peso y reps, completá todas'; }
+  if (ex.defaultWeight === 0) sugW = 0;
+  return { numSets: lsets.length, sugW, sugR, msg };
+}
+
+// ===== SCREENS =====
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  const idx = ['home','library','history'].indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'home') renderHome();
+  if (name === 'library') {
+    fromWorkout = currentExercises.length > 0;
+    document.getElementById('lib-back-btn').textContent = fromWorkout ? '← Volver al entreno' : '← Inicio';
+    document.getElementById('lib-back-btn').onclick = () => showScreen(fromWorkout ? 'workout' : 'home');
+    document.getElementById('bottom-nav').style.display = fromWorkout ? 'none' : 'flex';
+    renderLibrary();
+  }
+  if (name === 'workout') document.getElementById('bottom-nav').style.display = 'none';
+  if (name === 'home' || name === 'history') document.getElementById('bottom-nav').style.display = 'flex';
+}
+
+function goHome() {
+  if (currentExercises.length > 0 && !confirm('¿Salir sin guardar?')) return;
+  clearInterval(workoutTimerInterval); hideTimer();
+  currentRoutine = null; currentExercises = [];
+  showScreen('home');
+}
+
+// ===== HOME =====
+function renderHome() {
+  document.getElementById('home-date').textContent = hoy();
+  document.getElementById('routine-grid').innerHTML = ROUTINES_META.map(r => {
+    const last = getLastSession(r.id);
+    return `<div class="routine-card" onclick="startWorkout('${r.id}')">
+      <span class="emoji">${r.emoji}</span>
+      <div class="name">${r.name}</div>
+      <div class="sub">${r.desc}</div>
+      <div class="last-trained">${last ? '↩ ' + last.date : 'Sin registros aún'}</div>
+      <div class="accent-bar"></div>
+    </div>`;
+  }).join('');
+}
+
+// ===== WORKOUT =====
+function startWorkout(routineId) {
+  currentRoutine = ROUTINES_META.find(r => r.id === routineId);
+  currentExercises = pickExercises(routineId).map(ex => ({ ...ex, sets: initSets(ex) }));
+  workoutStart = Date.now();
+  document.getElementById('workout-title').textContent = currentRoutine.emoji + ' ' + currentRoutine.name;
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('screen-home').classList.remove('active');
+  document.getElementById('screen-workout').classList.add('active');
+  workoutTimerInterval = setInterval(() => {
+    const e = Math.floor((Date.now() - workoutStart) / 1000);
+    document.getElementById('workout-timer-mini').textContent =
+      Math.floor(e/60).toString().padStart(2,'0') + ':' + (e%60).toString().padStart(2,'0');
+  }, 1000);
+  renderExercises(); window.scrollTo(0,0);
+}
+
+function renderExercises() {
+  document.getElementById('exercise-list').innerHTML = currentExercises.map(ex => {
+    const sug = getSuggestion(ex);
+    const sugHTML = sug ? `<div class="suggestion-box">
+      <div class="title">💡 Sugerencia de hoy</div>
+      <div class="value">${sug.numSets} series × ${sug.sugR} reps${sug.sugW > 0 ? ' · ' + sug.sugW + ' kg' : ''}</div>
+      <div class="hint">${sug.msg}</div>
+    </div>` : '';
+
+    const last = getLastSession(currentRoutine.id);
+    const lastEx = last ? last.exercises.find(e => e.id === ex.id) : null;
+    const lastInfo = lastEx && lastEx.sets.length
+      ? `Última vez: ${lastEx.sets.map(s => (s.weight > 0 ? s.weight+'kg' : 'pc') + ' × ' + s.reps).join(' | ')}`
+      : 'Primera vez con este ejercicio';
+
+    const setsHTML = ex.sets.map((set, si) => `
+      <div class="set-row">
+        <div class="set-num">${si+1}</div>
+        <input class="set-input" type="number" value="${set.weight}" step="0.5" onchange="updateSet('${ex.id}',${si},'weight',this.value)" placeholder="kg">
+        <input class="set-input" type="number" value="${set.reps}" onchange="updateSet('${ex.id}',${si},'reps',this.value)" placeholder="reps">
+        <button class="set-done ${set.done?'checked':''}" onclick="toggleSetDone('${ex.id}',${si})">${set.done?'✓':''}</button>
+      </div>`).join('');
+
+    const simHTML = (ex.similar||[]).map(id => getById(id)).filter(Boolean).map(s =>
+      `<div class="swap-option" onclick="swapExercise('${ex.id}','${s.id}')">
+        <div><div>${s.name}</div><div class="swap-sub">${s.muscle}</div></div>
+        <span style="color:var(--blue);font-size:12px">Usar →</span>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0">Sin alternativas</div>';
+
+    const howTo = ex.desc ? `<button class="how-to-btn" onclick="toggleHowTo('${ex.id}')">❓ ¿Cómo se hace?</button>
+      <div class="how-to" id="how-${ex.id}">${ex.desc}</div>` : '';
+
+    return `<div class="exercise-card" id="ex-card-${ex.id}">
+      <div class="exercise-header" onclick="toggleExercise('${ex.id}')">
+        <div>
+          <div class="exercise-name">${ex.name}</div>
+          <div class="exercise-muscle">${ex.muscle}</div>
+        </div>
+        <span style="color:var(--muted);font-size:18px" id="toggle-${ex.id}">▼</span>
+      </div>
+      <div class="exercise-body" id="ex-body-${ex.id}">
+        ${howTo}
+        <div class="last-session">${lastInfo}</div>
+        ${sugHTML}
+        <div class="sets-header"><div></div><div>Peso</div><div>Reps</div><div>✓</div></div>
+        ${setsHTML}
+        <button class="add-set-btn" onclick="addSet('${ex.id}')">+ Serie</button>
+        <div class="action-row">
+          <button class="action-btn swap" onclick="toggleSwap('${ex.id}')">↔ Cambiar</button>
+          <button class="action-btn remove" onclick="removeExercise('${ex.id}')">✕ Quitar</button>
+        </div>
+      </div>
+      <div class="swap-panel" id="swap-${ex.id}">
+        <div class="swap-title">Ejercicios similares</div>
+        ${simHTML}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHowTo(exId) {
+  const el = document.getElementById('how-' + exId);
+  el.classList.toggle('open');
+}
+function toggleExercise(exId) {
+  const b = document.getElementById('ex-body-' + exId);
+  const t = document.getElementById('toggle-' + exId);
+  const h = b.style.display === 'none';
+  b.style.display = h ? 'block' : 'none';
+  t.textContent = h ? '▼' : '▶';
+}
+function toggleSwap(exId) {
+  const p = document.getElementById('swap-' + exId);
+  const open = p.classList.contains('open');
+  document.querySelectorAll('.swap-panel').forEach(x => x.classList.remove('open'));
+  if (!open) p.classList.add('open');
+}
+function swapExercise(oldId, newId) {
+  const idx = currentExercises.findIndex(e => e.id === oldId);
+  const newEx = getById(newId);
+  if (idx === -1 || !newEx) return;
+  currentExercises[idx] = { ...newEx, sets: initSets(newEx) };
+  renderExercises(); showToast('Ejercicio cambiado ✓');
+}
+function removeExercise(exId) {
+  currentExercises = currentExercises.filter(e => e.id !== exId);
+  renderExercises();
+}
+function updateSet(exId, si, field, val) {
+  const ex = currentExercises.find(e => e.id === exId);
+  if (ex) ex.sets[si][field] = parseFloat(val) || 0;
+}
+function toggleSetDone(exId, si) {
+  const ex = currentExercises.find(e => e.id === exId);
+  if (!ex) return;
+  ex.sets[si].done = !ex.sets[si].done;
+  if (ex.sets[si].done) startRestTimer(90);
+  renderExercises();
+}
+function addSet(exId) {
+  const ex = currentExercises.find(e => e.id === exId);
+  if (!ex) return;
+  const prev = ex.sets[ex.sets.length - 1];
+  ex.sets.push({ weight: prev.weight, reps: prev.reps, done: false });
+  renderExercises();
+}
+function addExercise() {
+  const name = document.getElementById('new-ex-name').value.trim();
+  const muscle = document.getElementById('new-ex-muscle').value.trim();
+  const weight = parseFloat(document.getElementById('new-ex-weight').value) || 0;
+  if (!name) { alert('Ingresá el nombre'); return; }
+  const newEx = { id:'custom_'+Date.now(), name, muscle: muscle||'General', defaultWeight: weight, defaultReps:10, similar:[], desc:'', sets: Array(3).fill(null).map(()=>({weight, reps:10, done:false})) };
+  currentExercises.push(newEx);
+  document.getElementById('new-ex-name').value = '';
+  document.getElementById('new-ex-muscle').value = '';
+  document.getElementById('new-ex-weight').value = '';
+  renderExercises(); showToast('Ejercicio agregado ✓');
+}
+function addFromLibrary(exId) {
+  const ex = getById(exId);
+  if (!ex) return;
+  if (!currentRoutine) { showToast('Primero iniciá una rutina'); return; }
+  if (currentExercises.find(e => e.id === exId)) { showToast('Ya está en tu rutina'); return; }
+  currentExercises.push({ ...ex, sets: initSets(ex) });
+  showToast(ex.name + ' agregado ✓');
+  renderExercises();
+}
+function finishWorkout() {
+  const exs = currentExercises.map(ex => ({
+    id: ex.id, name: ex.name, muscle: ex.muscle,
+    sets: ex.sets.filter(s => s.done || s.weight > 0),
+    allDone: ex.sets.every(s => s.done)
+  })).filter(e => e.sets.length > 0);
+  if (!exs.length) { alert('No registraste ninguna serie.'); return; }
+  S.history.push({
+    id: Date.now(), routineId: currentRoutine.id, routineName: currentRoutine.name,
+    emoji: currentRoutine.emoji,
+    date: new Date().toLocaleDateString('es-AR', {day:'numeric', month:'short', year:'numeric'}),
+    duration: Math.floor((Date.now() - workoutStart) / 60000),
+    exercises: exs
+  });
+  save();
+  clearInterval(workoutTimerInterval); hideTimer();
+  showToast('¡Entrenamiento guardado! 💪');
+  currentRoutine = null; currentExercises = [];
+  showScreen('home');
+}
+
+// ===== LIBRARY =====
+function renderLibrary() {
+  // filters
+  const filterEl = document.getElementById('lib-filter');
+  filterEl.innerHTML = MUSCLE_FILTERS.map(f =>
+    `<div class="filter-chip ${libFilter===f?'active':''}" onclick="setFilter('${f}')">${f}</div>`
+  ).join('');
+
+  const query = (document.getElementById('lib-search').value || '').toLowerCase();
+  let all = getAllEx();
+  if (libFilter !== 'Todos') all = all.filter(e => e.muscle.includes(libFilter) || e.muscle === libFilter);
+  if (query) all = all.filter(e => e.name.toLowerCase().includes(query) || e.muscle.toLowerCase().includes(query));
+
+  const inWorkout = new Set(currentExercises.map(e => e.id));
+  document.getElementById('lib-list').innerHTML = all.map(ex => `
+    <div class="lib-item">
+      <div class="lib-item-header">
+        <div>
+          <div class="lib-item-name">${ex.name}</div>
+          <div class="lib-item-muscle">${ex.muscle} · ${ex.defaultWeight > 0 ? ex.defaultWeight+'kg' : 'peso corporal'}</div>
+        </div>
+      </div>
+      <div class="lib-item-desc" id="lib-desc-${ex.id}">${ex.desc || 'Sin descripción.'}</div>
+      <div class="lib-item-footer">
+        <button class="see-how-btn" onclick="toggleLibDesc('${ex.id}')">❓ ¿Cómo se hace?</button>
+        ${currentRoutine ? `<button class="add-to-workout-btn" ${inWorkout.has(ex.id)?'disabled':''} onclick="addFromLibrary('${ex.id}')">
+          ${inWorkout.has(ex.id) ? 'Ya está' : '+ Agregar'}
+        </button>` : ''}
+      </div>
+    </div>`).join('');
+}
+function setFilter(f) { libFilter = f; renderLibrary(); }
+function toggleLibDesc(exId) {
+  document.getElementById('lib-desc-' + exId).classList.toggle('open');
+}
+
+// ===== REST TIMER =====
+function startRestTimer(s) {
+  clearInterval(restInterval);
+  let r = s;
+  document.getElementById('rest-timer').classList.add('visible');
+  updateTimerDisplay(r);
+  restInterval = setInterval(() => { r--; updateTimerDisplay(r); if (r <= 0) { clearInterval(restInterval); hideTimer(); } }, 1000);
+}
+function updateTimerDisplay(s) {
+  document.getElementById('timer-count').textContent = Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0');
+}
+function skipTimer() { clearInterval(restInterval); hideTimer(); }
+function hideTimer() { document.getElementById('rest-timer').classList.remove('visible'); }
+
+// ===== HISTORY =====
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!S.history.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px 0;font-size:14px">Sin entrenamientos aún</div>'; return; }
+  el.innerHTML = [...S.history].reverse().map(s => `
+    <div class="history-item">
+      <div class="history-date">${s.date} · ${s.duration||'?'} min</div>
+      <div class="history-routine">${s.emoji} ${s.routineName}</div>
+      <div class="history-ex">${s.exercises.map(e => `${e.name}: ${e.sets.map(st => (st.weight>0?st.weight+'kg':'pc') + ' × ' + st.reps).join(' | ')}`).join('<br>')}</div>
+    </div>`).join('');
+}
+
+renderHome();
+</script>
+</body>
+</html>
